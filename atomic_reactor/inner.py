@@ -9,11 +9,13 @@ of the BSD license. See the LICENSE file for details.
 Script for building docker image. This is expected to run inside container.
 """
 
+import sys
 import json
 import logging
 import tempfile
 import signal
 import docker
+import locale
 
 from atomic_reactor.build import InsideBuilder
 from atomic_reactor.plugin import (
@@ -436,6 +438,10 @@ def build_inside(input_method, input_args=None, substitutions=None):
             key, value = arg.split("=", 1)
             processed_keyvals[key] = value
         return processed_keyvals
+
+    main = __name__.split('.', 1)[0]
+    log_encoding = logging.getLogger(main).handlers[0].stream.encoding
+    logger.info("log encoding: %s", log_encoding)
 
     if not input_method:
         raise RuntimeError("No input method specified!")
