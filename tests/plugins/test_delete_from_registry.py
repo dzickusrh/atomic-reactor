@@ -16,6 +16,7 @@ from atomic_reactor.core import DockerTasker
 from atomic_reactor.inner import DockerBuildWorkflow, DockerRegistry
 from atomic_reactor.plugin import ExitPluginsRunner
 from atomic_reactor.plugins.exit_delete_from_registry import DeleteFromRegistryPlugin
+from atomic_reactor.plugins.build_orchestrate_build import OrchestrateBuildPlugin
 from tests.constants import LOCALHOST_REGISTRY, DOCKER0_REGISTRY, MOCK, TEST_IMAGE, INPUT_IMAGE
 
 from tempfile import mkdtemp
@@ -58,12 +59,24 @@ class X(object):
     {DOCKER0_REGISTRY: True, LOCALHOST_REGISTRY: True},
     {DOCKER0_REGISTRY: False, LOCALHOST_REGISTRY: True},
 ])
-def test_delete_from_registry_plugin(saved_digests, req_registries, tmpdir):
+@pytest.mark.parametrize("orchestrator", [True, False])
+def test_delete_from_registry_plugin(saved_digests, req_registries, tmpdir, orchestrator):
     if MOCK:
         mock_docker()
 
+    buildstep_plugin = None
+    if orchestrator:
+        ann_digests = []
+        buildstep_plugin = [{
+            'name': OrchestrateBuildPlugin.key,
+            'args': {
+                'platforms': "x86_64"
+            },
+        }]
+
     tasker = DockerTasker()
-    workflow = DockerBuildWorkflow({"provider": "git", "uri": "asd"}, TEST_IMAGE)
+    workflow = DockerBuildWorkflow({"provider": "git", "uri": "asd"}, TEST_IMAGE,
+                                   buildstep_plugins=buildstep_plugin, )
     setattr(workflow, 'builder', X)
 
     args_registries = {}
@@ -83,10 +96,27 @@ def test_delete_from_registry_plugin(saved_digests, req_registries, tmpdir):
             args_registries[reg] = {}
 
     for reg, digests in saved_digests.items():
-        r = DockerRegistry(reg)
-        for tag, dig in digests.items():
-            r.digests[tag] = ManifestDigest(v1='not-used', v2=dig)
-        workflow.push_conf._registries['docker'].append(r)
+        if orchestrator:
+            for tag, dig in digests.items():
+                repo = tag.split(':')[0]
+                t = tag.split(':')[1]
+                ann_digests.append({
+                    'digest': dig,
+                    'tag': t,
+                    'repository': repo,
+                    'registry': reg,
+                })
+        else:
+            r = DockerRegistry(reg)
+            for tag, dig in digests.items():
+                r.digests[tag] = ManifestDigest(v1='not-used', v2=dig)
+            workflow.push_conf._registries['docker'].append(r)
+
+    if orchestrator:
+        build_annotations = {'digests': ann_digests}
+        annotations = {'worker-builds': {'x86_64': build_annotations}}
+        setattr(workflow, 'build_result', Y)
+        setattr(workflow.build_result, 'annotations', annotations)
 
     runner = ExitPluginsRunner(
         tasker,
