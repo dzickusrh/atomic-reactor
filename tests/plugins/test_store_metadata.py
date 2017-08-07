@@ -21,13 +21,13 @@ from osbs.exceptions import OsbsResponseException
 from atomic_reactor.constants import (PLUGIN_KOJI_IMPORT_PLUGIN_KEY,
                                       PLUGIN_KOJI_PROMOTE_PLUGIN_KEY,
                                       PLUGIN_KOJI_UPLOAD_PLUGIN_KEY,
-                                      PLUGIN_PULP_PUSH_KEY)
+                                      PLUGIN_PULP_PUSH_KEY,
+                                      PLUGIN_PULP_PULL_KEY)
 from atomic_reactor.build import BuildResult
 from atomic_reactor.inner import DockerBuildWorkflow
 from atomic_reactor.plugin import ExitPluginsRunner, PluginFailedException
 from atomic_reactor.plugins.pre_add_help import AddHelpPlugin
 from atomic_reactor.plugins.post_rpmqa import PostBuildRPMqaPlugin
-from atomic_reactor.plugins.post_pulp_pull import PulpPullPlugin
 
 from atomic_reactor.plugins.exit_store_metadata_in_osv3 import StoreMetadataInOSv3Plugin
 from atomic_reactor.util import ImageName, LazyGit, ManifestDigest, df_parser
@@ -169,7 +169,7 @@ CMD blabla"""
     }
     workflow.postbuild_results = {
         PostBuildRPMqaPlugin.key: "rpm1\nrpm2",
-        PulpPullPlugin.key: pulp_pull_results,
+        PLUGIN_PULP_PULL_KEY: pulp_pull_results,
         PLUGIN_PULP_PUSH_KEY: pulp_push_results,
     }
 
