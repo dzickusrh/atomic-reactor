@@ -15,11 +15,11 @@ from osbs.conf import Configuration
 from osbs.exceptions import OsbsResponseException
 
 from atomic_reactor.plugins.pre_add_help import AddHelpPlugin
-from atomic_reactor.plugins.post_pulp_pull import PulpPullPlugin
 from atomic_reactor.constants import (PLUGIN_KOJI_IMPORT_PLUGIN_KEY,
                                       PLUGIN_KOJI_PROMOTE_PLUGIN_KEY,
                                       PLUGIN_KOJI_UPLOAD_PLUGIN_KEY,
-                                      PLUGIN_PULP_PUSH_KEY)
+                                      PLUGIN_PULP_PUSH_KEY,
+                                      PLUGIN_PULP_PULL_KEY)
 from atomic_reactor.plugin import ExitPlugin
 from atomic_reactor.util import get_build_json
 
@@ -210,7 +210,7 @@ class StoreMetadataInOSv3Plugin(ExitPlugin):
             top_layer, _ = pulp_push_results
             annotations['v1-image-id'] = top_layer
 
-        pulp_pull_results = self.workflow.postbuild_results.get(PulpPullPlugin.key)
+        pulp_pull_results = self.workflow.postbuild_results.get(PLUGIN_PULP_PULL_KEY)
         if pulp_pull_results:
             _, media_types = pulp_pull_results
             annotations['media-types'] = json.dumps(media_types)
